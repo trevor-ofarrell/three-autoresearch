@@ -1,6 +1,12 @@
 # autoresearch
 
-This is an experiment to have the LLM do its own research.
+This is an experiment to have the LLM do its own research on a domain corpus for
+Three.js, Three.js Shading Language, WebGPU, React Three Fiber, and Drei.
+
+Read `docs/RUNBOOK.md` before starting. The repository now has human-maintained
+corpus/eval infrastructure around upstream `autoresearch`, but the autonomous
+experiment surface is still intentionally narrow: during experiments, edit only
+`train.py`.
 
 ## Setup
 
@@ -10,9 +16,10 @@ To set up a new experiment, work with the user to:
 2. **Create the branch**: `git checkout -b autoresearch/<tag>` from current master.
 3. **Read the in-scope files**: The repo is small. Read these files for full context:
    - `README.md` — repository context.
-   - `prepare.py` — fixed constants, data prep, tokenizer, dataloader, evaluation. Do not modify.
+   - `prepare.py` — fixed domain data prep, tokenizer, dataloader, evaluation. Do not modify.
    - `train.py` — the file you modify. Model architecture, optimizer, training loop.
-4. **Verify data exists**: Check that `~/.cache/autoresearch/` contains data shards and a tokenizer. If not, tell the human to run `uv run prepare.py`.
+   - `docs/RUNBOOK.md` — domain corpus/eval workflow and CUDA run instructions.
+4. **Verify data exists**: Check that `data/shards/` contains shards and `artifacts/autoresearch/tokenizer/` contains the tokenizer. If shards are missing, tell the human to run the corpus pipeline in `docs/RUNBOOK.md`. If the tokenizer is missing, `uv run prepare.py` must be run on a CUDA-compatible host unless a Mac-specific dependency profile has been added.
 5. **Initialize results.tsv**: Create `results.tsv` with just the header row. The baseline will be recorded after the first run.
 6. **Confirm and go**: Confirm setup looks good.
 
@@ -28,7 +35,7 @@ Each experiment runs on a single GPU. The training script runs for a **fixed tim
 **What you CANNOT do:**
 - Modify `prepare.py`. It is read-only. It contains the fixed evaluation, data loading, tokenizer, and training constants (time budget, sequence length, etc).
 - Install new packages or add dependencies. You can only use what's already in `pyproject.toml`.
-- Modify the evaluation harness. The `evaluate_bpb` function in `prepare.py` is the ground truth metric.
+- Modify the corpus or evaluation harness during a training experiment. The `evaluate_bpb` function in `prepare.py` is the ground truth metric, and `evals/app-template` is the domain sanity gate.
 
 **The goal is simple: get the lowest val_bpb.** Since the time budget is fixed, you don't need to worry about training time — it's always 5 minutes. Everything is fair game: change the architecture, the optimizer, the hyperparameters, the batch size, the model size. The only constraint is that the code runs without crashing and finishes within the time budget.
 

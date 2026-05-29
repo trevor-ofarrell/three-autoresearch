@@ -3,10 +3,12 @@ One-time data preparation for autoresearch experiments.
 Downloads data shards and trains a BPE tokenizer.
 
 Usage:
-    python prepare.py                  # full prep (download + tokenizer)
-    python prepare.py --num-shards 8   # download only 8 shards (for testing)
+    python prepare.py                  # train tokenizer from local domain shards
+    python prepare.py --smoke          # create tiny local shards + tokenizer
+    python prepare.py --source climbmix --num-shards 8
 
-Data and tokenizer are stored in ~/.cache/autoresearch/.
+Domain data lives in ./data/shards by default. Tokenizers and other artifacts
+live in ./artifacts/autoresearch by default.
 """
 
 import os
@@ -14,14 +16,19 @@ import sys
 import time
 import math
 import argparse
+import json
 import pickle
 from multiprocessing import Pool
 
 import requests
-import pyarrow.parquet as pq
 import rustbpe
 import tiktoken
 import torch
+
+try:
+    import pyarrow.parquet as pq
+except ModuleNotFoundError:
+    pq = None
 
 # ---------------------------------------------------------------------------
 # Constants (fixed, do not modify)
@@ -35,14 +42,25 @@ EVAL_TOKENS = 40 * 524288  # number of tokens for val eval
 # Configuration
 # ---------------------------------------------------------------------------
 
-CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "autoresearch")
-DATA_DIR = os.path.join(CACHE_DIR, "data")
-TOKENIZER_DIR = os.path.join(CACHE_DIR, "tokenizer")
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+CACHE_DIR = os.environ.get(
+    "AUTORESEARCH_CACHE_DIR",
+    os.path.join(PROJECT_ROOT, "artifacts", "autoresearch"),
+)
+DATA_DIR = os.environ.get(
+    "AUTORESEARCH_DATA_DIR",
+    os.path.join(PROJECT_ROOT, "data", "shards"),
+)
+TOKENIZER_DIR = os.environ.get(
+    "AUTORESEARCH_TOKENIZER_DIR",
+    os.path.join(CACHE_DIR, "tokenizer"),
+)
+CLIMBMIX_DATA_DIR = os.path.join(CACHE_DIR, "climbmix_data")
 BASE_URL = "https://huggingface.co/datasets/karpathy/climbmix-400b-shuffle/resolve/main"
 MAX_SHARD = 6542 # the last datashard is shard_06542.parquet
 VAL_SHARD = MAX_SHARD  # pinned validation shard (shard_06542)
 VAL_FILENAME = f"shard_{VAL_SHARD:05d}.parquet"
-VOCAB_SIZE = 8192
+VOCAB_SIZE = int(os.environ.get("AUTORESEARCH_VOCAB_SIZE", "8192"))
 
 # BPE split pattern (GPT-4 style, with \p{N}{1,2} instead of {1,3})
 SPLIT_PATTERN = r"""'(?i:[sdmt]|ll|ve|re)|[^\r\n\p{L}\p{N}]?+\p{L}+|\p{N}{1,2}| ?[^\s\p{L}\p{N}]++[\r\n]*|\s*[\r\n]|\s+(?!\S)|\s+"""
@@ -117,25 +135,52 @@ def download_data(num_shards, download_workers=8):
 # ---------------------------------------------------------------------------
 
 def list_parquet_files():
-    """Return sorted list of parquet file paths in the data directory."""
-    files = sorted(f for f in os.listdir(DATA_DIR) if f.endswith(".parquet") and not f.endswith(".tmp"))
+    """Return sorted list of supported shard paths in the data directory."""
+    if not os.path.isdir(DATA_DIR):
+        return []
+    files = sorted(
+        f for f in os.listdir(DATA_DIR)
+        if (f.endswith(".parquet") or f.endswith(".jsonl")) and not f.endswith(".tmp")
+    )
     return [os.path.join(DATA_DIR, f) for f in files]
+
+
+def is_val_file(path):
+    """Return True if a parquet path belongs to the held-out validation split."""
+    filename = os.path.basename(path)
+    return filename == VAL_FILENAME or filename.startswith("shard_val_")
+
+
+def iter_texts_from_file(filepath):
+    """Yield text column/documents from a parquet or JSONL shard."""
+    if filepath.endswith(".jsonl"):
+        with open(filepath, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                yield row["text"]
+        return
+
+    if pq is None:
+        raise RuntimeError("pyarrow is required to read parquet shards")
+    pf = pq.ParquetFile(filepath)
+    for rg_idx in range(pf.num_row_groups):
+        rg = pf.read_row_group(rg_idx)
+        yield from rg.column("text").to_pylist()
 
 
 def text_iterator(max_chars=1_000_000_000, doc_cap=10_000):
     """Yield documents from training split (all shards except pinned val shard)."""
-    parquet_paths = [p for p in list_parquet_files() if not p.endswith(VAL_FILENAME)]
+    parquet_paths = [p for p in list_parquet_files() if not is_val_file(p)]
     nchars = 0
     for filepath in parquet_paths:
-        pf = pq.ParquetFile(filepath)
-        for rg_idx in range(pf.num_row_groups):
-            rg = pf.read_row_group(rg_idx)
-            for text in rg.column("text").to_pylist():
-                doc = text[:doc_cap] if len(text) > doc_cap else text
-                nchars += len(doc)
-                yield doc
-                if nchars >= max_chars:
-                    return
+        for text in iter_texts_from_file(filepath):
+            doc = text[:doc_cap] if len(text) > doc_cap else text
+            nchars += len(doc)
+            yield doc
+            if nchars >= max_chars:
+                return
 
 
 def train_tokenizer():
@@ -150,8 +195,12 @@ def train_tokenizer():
     os.makedirs(TOKENIZER_DIR, exist_ok=True)
 
     parquet_files = list_parquet_files()
-    if len(parquet_files) < 2:
-        print("Tokenizer: need at least 2 data shards (1 train + 1 val). Download more data first.")
+    train_files = [p for p in parquet_files if not is_val_file(p)]
+    val_files = [p for p in parquet_files if is_val_file(p)]
+    if not train_files or not val_files:
+        print("Tokenizer: need at least 1 train shard and 1 val shard.")
+        print(f"Tokenizer: expected local parquet/jsonl shards in {DATA_DIR}")
+        print("Tokenizer: run `uv run scripts/create_smoke_corpus.py` or the corpus pipeline first.")
         sys.exit(1)
 
     # --- Train with rustbpe ---
@@ -252,24 +301,26 @@ def get_token_bytes(device="cpu"):
 
 
 def _document_batches(split, tokenizer_batch_size=128):
-    """Infinite iterator over document batches from parquet files."""
+    """Infinite iterator over document batches from local shard files."""
     parquet_paths = list_parquet_files()
     assert len(parquet_paths) > 0, "No parquet files found. Run prepare.py first."
-    val_path = os.path.join(DATA_DIR, VAL_FILENAME)
     if split == "train":
-        parquet_paths = [p for p in parquet_paths if p != val_path]
+        parquet_paths = [p for p in parquet_paths if not is_val_file(p)]
         assert len(parquet_paths) > 0, "No training shards found."
     else:
-        parquet_paths = [val_path]
+        parquet_paths = [p for p in parquet_paths if is_val_file(p)]
+        assert len(parquet_paths) > 0, "No validation shards found."
     epoch = 1
     while True:
         for filepath in parquet_paths:
-            pf = pq.ParquetFile(filepath)
-            for rg_idx in range(pf.num_row_groups):
-                rg = pf.read_row_group(rg_idx)
-                batch = rg.column('text').to_pylist()
-                for i in range(0, len(batch), tokenizer_batch_size):
-                    yield batch[i:i+tokenizer_batch_size], epoch
+            batch = []
+            for text in iter_texts_from_file(filepath):
+                batch.append(text)
+                if len(batch) == tokenizer_batch_size:
+                    yield batch, epoch
+                    batch = []
+            if batch:
+                yield batch, epoch
         epoch += 1
 
 
@@ -370,20 +421,43 @@ def evaluate_bpb(model, tokenizer, batch_size):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare data and tokenizer for autoresearch")
-    parser.add_argument("--num-shards", type=int, default=10, help="Number of training shards to download (-1 = all). Val shard is always pinned.")
+    parser.add_argument("--source", choices=["domain", "climbmix"], default="domain", help="Use local domain shards or upstream climbmix shards.")
+    parser.add_argument("--smoke", action="store_true", help="Create tiny local domain shards before training tokenizer.")
+    parser.add_argument("--num-shards", type=int, default=10, help="Number of climbmix training shards to download (-1 = all). Val shard is always pinned.")
     parser.add_argument("--download-workers", type=int, default=8, help="Number of parallel download workers")
+    parser.add_argument("--vocab-size", type=int, default=VOCAB_SIZE, help="Tokenizer vocabulary size.")
     args = parser.parse_args()
 
-    num_shards = MAX_SHARD if args.num_shards == -1 else args.num_shards
+    VOCAB_SIZE = args.vocab_size
+    if args.source == "climbmix" and "AUTORESEARCH_DATA_DIR" not in os.environ:
+        DATA_DIR = CLIMBMIX_DATA_DIR
 
     print(f"Cache directory: {CACHE_DIR}")
+    print(f"Data directory:  {DATA_DIR}")
     print()
 
-    # Step 1: Download data
-    download_data(num_shards, download_workers=args.download_workers)
-    print()
+    if args.smoke:
+        from scripts.create_smoke_corpus import main as create_smoke_corpus
+        create_smoke_corpus()
+        print()
 
-    # Step 2: Train tokenizer
+    if args.source == "climbmix":
+        num_shards = MAX_SHARD if args.num_shards == -1 else args.num_shards
+        download_data(num_shards, download_workers=args.download_workers)
+        print()
+    else:
+        parquet_files = list_parquet_files()
+        if not parquet_files:
+            print("Data: no local domain shards found.")
+            print("Data: run one of:")
+            print("  uv run prepare.py --smoke --vocab-size 512")
+            print("  uv run scripts/corpus_sync.py --registry data/sources.yaml")
+            print("  uv run scripts/corpus_normalize.py --registry data/sources.yaml")
+            print("  uv run scripts/corpus_shard.py --input data/normalized/docs.jsonl --out data/shards")
+            sys.exit(1)
+        print(f"Data: found {len(parquet_files)} local shards at {DATA_DIR}")
+        print()
+
     train_tokenizer()
     print()
     print("Done! Ready to train.")

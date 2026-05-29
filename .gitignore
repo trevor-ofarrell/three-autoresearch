@@ -1,23 +1,20 @@
-# Python-generated files
 __pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+*.py[cod]
+.venv/
+.DS_Store
 
-# Virtual environments
-.venv
-worktrees/
-results/
-queue/
-
-# Agent prompt files (generated per-session by launchers)
-CLAUDE.md
-AGENTS.md
-
-# Experimental code/artifacts
-dev/
-
-# Results file
+# Local research artifacts. These are intentionally reproducible from the
+# registry/scripts but too large or too machine-specific to commit.
+data/raw/
+data/normalized/
+data/shards/
+artifacts/
 results.tsv
+run.log
+
+# Domain eval dependencies/build output.
+evals/app-template/node_modules/
+evals/app-template/dist/
+evals/app-template/test-results/
+evals/app-template/playwright-report/
+evals/app-template/generated/

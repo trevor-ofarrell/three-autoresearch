@@ -1,0 +1,154 @@
+[
+  {
+    "id": "three",
+    "kind": "git",
+    "url": "https://github.com/mrdoob/three.js.git",
+    "revision_or_date": "master",
+    "license_note": "MIT repository; retain upstream license metadata.",
+    "allowed_use": "private_research_training",
+    "topics": ["threejs", "examples", "docs", "tsl", "webgpu"],
+    "include_globs": [
+      "docs/**/*.html",
+      "docs/**/*.md",
+      "manual/**/*.html",
+      "examples/*.html",
+      "examples/*.js",
+      "examples/*.css",
+      "examples/*.json",
+      "examples/*.md",
+      "examples/*.txt",
+      "examples/**/*.js",
+      "examples/**/*.html",
+      "examples/**/*.css",
+      "examples/**/*.json",
+      "examples/**/*.md",
+      "examples/**/*.txt",
+      "examples/**/*.glsl",
+      "examples/**/*.wgsl",
+      "examples/**/*.vert",
+      "examples/**/*.frag",
+      "examples/**/*.mtlx",
+      "examples/**/*.gltf",
+      "examples/**/*.obj",
+      "examples/**/*.mtl",
+      "examples/**/*.ts",
+      "examples/**/*.tsx",
+      "src/**/*.js",
+      "src/**/*.ts"
+    ],
+    "exclude_globs": [
+      "**/node_modules/**",
+      "**/build/**",
+      "**/*.min.js"
+    ],
+    "parser": "code_or_text"
+  },
+  {
+    "id": "react-three-fiber",
+    "kind": "git",
+    "url": "https://github.com/pmndrs/react-three-fiber.git",
+    "revision_or_date": "master",
+    "license_note": "MIT repository; retain upstream license metadata.",
+    "allowed_use": "private_research_training",
+    "topics": ["react-three-fiber", "react", "threejs", "tsx"],
+    "include_globs": [
+      "docs/**/*.md",
+      "docs/**/*.mdx",
+      "packages/**/*.ts",
+      "packages/**/*.tsx",
+      "example/**/*.ts",
+      "example/**/*.tsx"
+    ],
+    "exclude_globs": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/.next/**"
+    ],
+    "parser": "code_or_text"
+  },
+  {
+    "id": "drei",
+    "kind": "git",
+    "url": "https://github.com/pmndrs/drei.git",
+    "revision_or_date": "master",
+    "license_note": "MIT repository; retain upstream license metadata.",
+    "allowed_use": "private_research_training",
+    "topics": ["drei", "react-three-fiber", "helpers", "tsx"],
+    "include_globs": [
+      "docs/**/*.md",
+      "docs/**/*.mdx",
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "stories/**/*.tsx"
+    ],
+    "exclude_globs": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/.next/**"
+    ],
+    "parser": "code_or_text"
+  },
+  {
+    "id": "webgpu-samples",
+    "kind": "git",
+    "url": "https://github.com/webgpu/webgpu-samples.git",
+    "revision_or_date": "main",
+    "license_note": "Repository license applies; retain upstream metadata.",
+    "allowed_use": "private_research_training",
+    "topics": ["webgpu", "wgsl", "typescript"],
+    "include_globs": [
+      "sample/**/*.ts",
+      "sample/**/*.tsx",
+      "sample/**/*.wgsl",
+      "src/**/*.ts",
+      "src/**/*.wgsl",
+      "README.md"
+    ],
+    "exclude_globs": [
+      "**/node_modules/**",
+      "**/dist/**"
+    ],
+    "parser": "code_or_text"
+  },
+  {
+    "id": "mdn-webgpu",
+    "kind": "git",
+    "url": "https://github.com/mdn/content.git",
+    "revision_or_date": "main",
+    "license_note": "MDN content license applies; retain upstream metadata.",
+    "allowed_use": "private_research_training",
+    "topics": ["webgpu", "api-docs", "javascript"],
+    "include_globs": [
+      "files/en-us/web/api/webgpu_api/**/*.md",
+      "files/en-us/web/api/gpu*/**/*.md"
+    ],
+    "exclude_globs": [
+      "**/node_modules/**"
+    ],
+    "parser": "markdown"
+  },
+  {
+    "id": "threejs-journey-public-notes",
+    "kind": "http",
+    "url": "https://threejs-journey.com/",
+    "revision_or_date": "2026-05-29",
+    "license_note": "Community/tutorial source. Do not redistribute downloaded text without reviewing terms.",
+    "allowed_use": "private_research_reference",
+    "topics": ["threejs", "community", "tutorials"],
+    "include_globs": [],
+    "exclude_globs": [],
+    "parser": "html"
+  },
+  {
+    "id": "sbcode-threejs-tutorials",
+    "kind": "http",
+    "url": "https://sbcode.net/threejs/",
+    "revision_or_date": "2026-05-29",
+    "license_note": "Community/tutorial source. Do not redistribute downloaded text without reviewing terms.",
+    "allowed_use": "private_research_reference",
+    "topics": ["threejs", "community", "tutorials"],
+    "include_globs": [],
+    "exclude_globs": [],
+    "parser": "html"
+  }
+]

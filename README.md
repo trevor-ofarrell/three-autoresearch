@@ -58,6 +58,32 @@ program.md      — agent instructions
 pyproject.toml  — dependencies
 ```
 
+## Three/WebGPU domain groundwork
+
+This checkout adds local infrastructure for a Three.js / TSL / WebGPU / React
+Three Fiber / Drei research corpus and eval harness:
+
+- `data/sources.yaml` — provenance registry for official, open, and selected
+  community sources.
+- `scripts/corpus_sync.py` — fetches registered sources into gitignored
+  `data/raw`.
+- `scripts/corpus_normalize.py` — emits provenance-rich JSONL documents.
+- `scripts/corpus_shard.py` — creates train/val parquet shards in `data/shards`.
+- `evals/app-template` — strict TypeScript R3F/Drei buildable-app smoke eval.
+- `scripts/run_experiment.py` — guarded experiment runner for CUDA hosts.
+- `docs/RUNBOOK.md` — local, corpus, eval, and cloud-training workflow.
+
+Local smoke setup:
+
+```bash
+python3 scripts/create_smoke_corpus.py
+python3 scripts/run_experiment.py --tag smoke --dry-run
+```
+
+The upstream lockfile pins CUDA PyTorch, so `uv sync`, `prepare.py` tokenizer
+training, and real `train.py` runs should happen on the CUDA host unless a
+Mac-specific dependency profile is added.
+
 ## Design choices
 
 - **Single file to modify.** The agent only touches `train.py`. This keeps the scope manageable and diffs reviewable.
