@@ -8,8 +8,10 @@ __pycache__/
 data/raw/
 data/normalized/
 data/shards/
+data/hyperframes/
 artifacts/
 finetune/datasets/
+finetune/datasets-hyperframes/
 results.tsv
 run.log
 
@@ -19,3 +21,7 @@ evals/app-template/dist/
 evals/app-template/test-results/
 evals/app-template/playwright-report/
 evals/app-template/generated/
+domains/hyperframes/evals/template/node_modules/
+domains/hyperframes/evals/template/diagnostics/
+domains/hyperframes/evals/template/snapshots/
+domains/hyperframes/evals/template/renders/

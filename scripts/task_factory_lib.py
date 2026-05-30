@@ -87,6 +87,11 @@ def validate_tasks(tasks: list[dict[str, Any]], expected_split: str | None = Non
             raise ValueError(f"{task['id']}: expected split {expected_split!r}, got {task['split']!r}")
         if task["allowed_file"] != ALLOWED_FILE.as_posix():
             raise ValueError(f"{task['id']}: allowed_file must be {ALLOWED_FILE.as_posix()}")
+        if task.get("schema_version", 1) >= 2:
+            if not task.get("source_refs"):
+                raise ValueError(f"{task['id']}: schema v2 tasks must include source_refs")
+            if not task.get("semantic_checks"):
+                raise ValueError(f"{task['id']}: schema v2 tasks must include semantic_checks")
         if not isinstance(task["constraints"], list) or not task["constraints"]:
             raise ValueError(f"{task['id']}: constraints must be a non-empty list")
         if not isinstance(task["checks"], list) or not task["checks"]:

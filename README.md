@@ -70,6 +70,8 @@ Three Fiber / Drei research corpus and eval harness:
 - `scripts/corpus_normalize.py` — emits provenance-rich JSONL documents.
 - `scripts/corpus_shard.py` — creates train/val parquet shards in `data/shards`.
 - `evals/app-template` — strict TypeScript R3F/Drei buildable-app smoke eval.
+- `scripts/generate_domain_tasks.py` — creates source-grounded schema v2 task
+  banks for local SFT/eval generation.
 - `scripts/run_experiment.py` — guarded experiment runner for CUDA hosts.
 - `scripts/run_codex_task.py` — local one-file Codex task runner for SFT data.
 - `scripts/make_sft_dataset.py` — converts passing task runs into clean SFT JSONL.

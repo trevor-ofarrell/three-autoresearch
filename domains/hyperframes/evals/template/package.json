@@ -1,0 +1,11 @@
+{
+  "name": "hyperframes-autoresearch-task",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "node tools/hf_static_check.mjs --mode syntax",
+    "lint": "node tools/hf_static_check.mjs --mode lint",
+    "validate": "node tools/hf_static_check.mjs --mode validate",
+    "snapshot": "node tools/hf_snapshot.mjs"
+  }
+}
