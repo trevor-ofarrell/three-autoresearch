@@ -9,6 +9,7 @@ data/raw/
 data/normalized/
 data/shards/
 artifacts/
+finetune/datasets/
 results.tsv
 run.log
 

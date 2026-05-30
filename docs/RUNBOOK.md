@@ -49,7 +49,14 @@ npm --prefix evals/app-template run test
 ```
 
 The template verifies strict TypeScript, Vite bundling, no browser/page errors,
-a visible R3F/Drei label, and nonblank WebGL canvas pixels.
+nonblank WebGL canvas pixels, and a desktop screenshot captured from the
+Playwright run.
+
+## Local Codex Data Factory
+
+Use `docs/DATA_FACTORY.md` for the AutoResearch-aligned local data loop. Each
+task gives Codex one editable file, `src/solution.tsx`, and the locked scorer
+decides whether the resulting app becomes clean SFT data.
 
 ## CUDA Training Loop
 
