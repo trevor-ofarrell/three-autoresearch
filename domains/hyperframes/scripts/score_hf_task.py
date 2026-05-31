@@ -23,6 +23,7 @@ BASE_CHECK_POINTS = {
     "no_console_errors": 100,
     "snapshot_nonblank": 100,
     "snapshot_frame_variation": 100,
+    "snapshot_frames_retained": 100,
     "deterministic_source": 100,
 }
 FORBIDDEN_EDIT_PENALTY = 1000
@@ -75,6 +76,21 @@ def valid_desktop_screenshot(path: Path) -> bool:
         return False
     width, height = dimensions
     return width >= MIN_DESKTOP_SCREENSHOT_WIDTH and height >= MIN_DESKTOP_SCREENSHOT_HEIGHT
+
+
+def snapshot_frames_retained(snapshot_report: dict[str, Any], attempt_dir: Path) -> bool:
+    frames = snapshot_report.get("frames", [])
+    if not isinstance(frames, list) or not frames:
+        return False
+    for frame in frames:
+        if not isinstance(frame, dict) or not frame.get("path"):
+            return False
+        path = Path(frame["path"])
+        if not path.is_absolute():
+            path = attempt_dir / path
+        if png_dimensions(path) is None:
+            return False
+    return True
 
 
 def strip_comments(source: str) -> str:
@@ -180,6 +196,7 @@ def score_run(run_dir: Path, attempt_dir: Path | None = None) -> dict[str, Any]:
     no_console_errors = not snapshot_report.get("consoleErrors") and not snapshot_report.get("pageErrors")
     snapshot_nonblank = bool(snapshot_report.get("visibility", {}).get("visibleElements", 0) > 0)
     snapshot_frame_variation = int(snapshot_report.get("uniqueFrameHashes", 0) or 0) > 1
+    retained_frames = snapshot_frames_retained(snapshot_report, attempt_dir)
 
     add_check("allowed_file_only", allowed_file_only, BASE_CHECK_POINTS["allowed_file_only"])
     add_check("solution_changed", solution_changed, BASE_CHECK_POINTS["solution_changed"])
@@ -192,6 +209,7 @@ def score_run(run_dir: Path, attempt_dir: Path | None = None) -> dict[str, Any]:
     add_check("no_console_errors", no_console_errors, BASE_CHECK_POINTS["no_console_errors"])
     add_check("snapshot_nonblank", snapshot_nonblank, BASE_CHECK_POINTS["snapshot_nonblank"])
     add_check("snapshot_frame_variation", snapshot_frame_variation, BASE_CHECK_POINTS["snapshot_frame_variation"])
+    add_check("snapshot_frames_retained", retained_frames, BASE_CHECK_POINTS["snapshot_frames_retained"])
     add_check("deterministic_source", deterministic_source_passed(source), BASE_CHECK_POINTS["deterministic_source"])
 
     semantic_detail: dict[str, Any] = {}

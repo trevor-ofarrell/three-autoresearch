@@ -138,13 +138,18 @@ def run_codex(
 
 
 def copy_generated_reports(workspace: Path, attempt_dir: Path) -> None:
-    for name in ["diagnostics", "snapshots"]:
-        src = workspace / name
-        dst = attempt_dir / name
-        if dst.exists():
-            shutil.rmtree(dst)
-        if src.exists():
-            shutil.copytree(src, dst)
+    diagnostics_src = workspace / "diagnostics"
+    diagnostics_dst = attempt_dir / "diagnostics"
+    if diagnostics_src.exists():
+        if diagnostics_dst.exists():
+            shutil.rmtree(diagnostics_dst)
+        shutil.copytree(diagnostics_src, diagnostics_dst)
+
+    snapshots_src = workspace / "snapshots"
+    snapshots_dst = attempt_dir / "snapshots"
+    if snapshots_src.exists():
+        snapshots_dst.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(snapshots_src, snapshots_dst, dirs_exist_ok=True)
 
 
 def run_checks(workspace: Path, attempt_dir: Path, timeout_seconds: int) -> dict[str, dict[str, Any]]:
@@ -250,6 +255,7 @@ def final_verdict(
     final_patch = run_dir / "final.patch"
     final_patch.write_text(git_diff(run_dir / "workspace"), encoding="utf-8")
     screenshots = sorted(str(path) for path in (run_dir / "attempts").rglob("screenshots/*.png"))
+    snapshot_frames = sorted(str(path) for path in (run_dir / "attempts").rglob("snapshots/frame-*.png"))
     verdict = {
         "task_id": task["id"],
         "factory": "hyperframes",
@@ -266,6 +272,7 @@ def final_verdict(
         "final_files": final_files,
         "final_files_root": (run_dir / "final_files").as_posix(),
         "screenshots": screenshots,
+        "snapshot_frames": snapshot_frames,
         "started_at": started_at,
         "finished_at": utc_timestamp(),
         "duration_seconds": round(time.time() - started_time, 3),

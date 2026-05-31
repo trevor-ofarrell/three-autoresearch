@@ -91,6 +91,11 @@ def make_record(run_dir: Path, current_train_ids: set[str]) -> dict[str, Any] | 
         return None
     if not any(path.exists() for path in screenshots):
         return None
+    snapshot_frames = [Path(path) for path in verdict.get("snapshot_frames", [])]
+    if "snapshot_frames_retained" not in verdict.get("passed_checks", []):
+        return None
+    if len(snapshot_frames) < 3 or not all(path.exists() for path in snapshot_frames):
+        return None
     final_root = Path(verdict.get("final_files_root", ""))
     files = [path for path in verdict.get("final_files", []) if (final_root / path).exists()]
     if not files:
@@ -111,6 +116,7 @@ def make_record(run_dir: Path, current_train_ids: set[str]) -> dict[str, Any] | 
             "checks_passed": verdict.get("passed_checks", []),
             "source_run_path": run_dir.as_posix(),
             "screenshot_path": next((path.as_posix() for path in screenshots if path.exists()), ""),
+            "snapshot_frame_paths": [path.as_posix() for path in snapshot_frames if path.exists()],
             "final_index_hash": stable_hash(index_text),
             "final_files": files,
         },

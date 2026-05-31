@@ -78,7 +78,13 @@ def prepare_dependencies(workspace: Path, use_template_node_modules: bool) -> No
         subprocess.run(["npm", "install"], cwd=workspace, check=True)
 
 
-def run_codex(prompt: str, workspace: Path, attempt_dir: Path, timeout_seconds: int) -> int:
+def run_codex(
+    prompt: str,
+    workspace: Path,
+    attempt_dir: Path,
+    timeout_seconds: int,
+    service_tier: str = "",
+) -> int:
     prompt_path = attempt_dir / "prompt.md"
     prompt_path.write_text(prompt, encoding="utf-8")
     output_path = attempt_dir / "codex.jsonl"
@@ -88,6 +94,10 @@ def run_codex(prompt: str, workspace: Path, attempt_dir: Path, timeout_seconds: 
         "codex",
         "--ask-for-approval",
         "never",
+    ]
+    if service_tier:
+        command.extend(["-c", f'service_tier="{service_tier}"'])
+    command.extend([
         "exec",
         "--dangerously-bypass-approvals-and-sandbox",
         "--json",
@@ -96,7 +106,7 @@ def run_codex(prompt: str, workspace: Path, attempt_dir: Path, timeout_seconds: 
         "--output-last-message",
         os.fspath(last_message_path),
         "-",
-    ]
+    ])
     print(f"[codex] starting in {workspace}")
     start = time.time()
     with prompt_path.open("r", encoding="utf-8") as stdin:
@@ -240,7 +250,9 @@ def final_verdict(
         "finished_at": utc_timestamp(),
         "duration_seconds": round(time.time() - started_time, 3),
     }
-    write_json(run_dir / "verdict.json", verdict)
+    tmp_path = run_dir / "verdict.json.tmp"
+    write_json(tmp_path, verdict)
+    tmp_path.replace(run_dir / "verdict.json")
     append_jsonl(ARTIFACTS_DIR / "index.jsonl", verdict)
     return verdict
 
@@ -253,6 +265,7 @@ def run_task(
     force: bool,
     dry_run: bool,
     use_template_node_modules: bool,
+    service_tier: str = "",
 ) -> dict[str, Any] | None:
     run_dir = ARTIFACTS_DIR / task["id"]
     workspace = run_dir / "workspace"
@@ -296,7 +309,13 @@ def run_task(
         prompt = task_prompt(task, attempt=attempt, feedback=feedback)
         print(f"[task] {task['id']} attempt {attempt}/{attempts}")
         try:
-            codex_rc = run_codex(prompt, workspace, attempt_dir, timeout_seconds=codex_timeout_seconds)
+            codex_rc = run_codex(
+                prompt,
+                workspace,
+                attempt_dir,
+                timeout_seconds=codex_timeout_seconds,
+                service_tier=service_tier,
+            )
         except KeyboardInterrupt:
             return final_verdict(task, run_dir, "runner_error", last_score, attempts_used, started_at, started_time)
         except subprocess.TimeoutExpired:
@@ -333,6 +352,7 @@ def main() -> None:
     parser.add_argument("--attempts", type=int, default=3)
     parser.add_argument("--codex-timeout-seconds", type=int, default=900)
     parser.add_argument("--check-timeout-seconds", type=int, default=120)
+    parser.add_argument("--service-tier", default="")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--rerun", action="store_true")
     parser.add_argument("--no-template-node-modules", action="store_true")
@@ -347,6 +367,7 @@ def main() -> None:
         force=args.rerun,
         dry_run=args.dry_run,
         use_template_node_modules=not args.no_template_node_modules,
+        service_tier=args.service_tier,
     )
     if verdict:
         print(json.dumps(verdict, indent=2, sort_keys=True))

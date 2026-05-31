@@ -27,6 +27,7 @@ python3 domains/hyperframes/scripts/generate_hf_tasks.py
 python3 domains/hyperframes/scripts/run_hf_task.py --task-id hf-train-html-canvas-card-001 --split train --dry-run
 python3 domains/hyperframes/scripts/run_hf_task.py --task-id hf-train-html-canvas-card-001 --split train --rerun
 python3 domains/hyperframes/scripts/run_hf_factory.py --split train --resume --loop --stop-after-passes 300
+python3 domains/hyperframes/scripts/backfill_hf_snapshots.py
 python3 domains/hyperframes/scripts/make_hf_sft_dataset.py
 ```
 
@@ -42,7 +43,7 @@ The v1 bank is generated as 300 train tasks plus 50 held-out eval tasks. The pro
 - WebGPU/TypeGPU patterns for adapter/device fallback, typed shader/uniform intent, texture usage flags, queue submission, and completion fencing.
 - GSAP timeline semantics for paused, seekable, label-driven HyperFrames composition state.
 
-Every task requires automated checks, desktop screenshots, frame variation across seeked snapshots, deterministic source rules, clean replay, allowed-file enforcement, and task-specific semantic gates.
+Every task requires automated checks, desktop screenshots, retained seeked snapshot frames, frame variation across seeked snapshots, deterministic source rules, clean replay, allowed-file enforcement, and task-specific semantic gates.
 
 ## Safety
 

@@ -33,6 +33,7 @@ BASE_CHECKS = [
     "no_console_errors",
     "snapshot_nonblank",
     "snapshot_frame_variation",
+    "snapshot_frames_retained",
     "deterministic_source",
     "codex_success",
     "solution_size",

@@ -52,6 +52,7 @@ def main() -> None:
     parser.add_argument("--attempts", type=int, default=3)
     parser.add_argument("--codex-timeout-seconds", type=int, default=900)
     parser.add_argument("--check-timeout-seconds", type=int, default=120)
+    parser.add_argument("--service-tier", default="")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -94,6 +95,7 @@ def main() -> None:
                 force=args.rerun,
                 dry_run=args.dry_run,
                 use_template_node_modules=True,
+                service_tier=args.service_tier,
             )
             if args.dry_run:
                 continue
