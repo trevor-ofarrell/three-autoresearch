@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "hf-autoresearch-task",
+  "name": "HyperFrames AutoResearch Task",
+  "compositionPath": "index.html",
+  "createdAt": "2026-05-30T00:00:00.000Z",
+  "codexThreads": {},
+  "renderDefaults": {
+    "quality": "draft",
+    "fps": 30,
+    "width": 1280,
+    "height": 720
+  },
+  "htmlInCanvas": {
+    "fallbackMode": "auto"
+  }
+}

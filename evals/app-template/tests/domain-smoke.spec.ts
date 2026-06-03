@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test'
+import { mkdir } from 'node:fs/promises'
+import { dirname } from 'node:path'
 
 test('R3F/Drei app renders without console errors and paints canvas', async ({ page }) => {
   const consoleErrors: string[] = []
@@ -12,9 +14,16 @@ test('R3F/Drei app renders without console errors and paints canvas', async ({ p
   })
 
   await page.goto('/')
+  await page.setViewportSize({ width: 1280, height: 720 })
   const canvas = page.locator('canvas')
   await expect(canvas).toBeVisible()
   await page.waitForTimeout(750)
+
+  const screenshotPath = process.env.EVAL_SCREENSHOT_PATH
+  if (screenshotPath) {
+    await mkdir(dirname(screenshotPath), { recursive: true })
+    await page.screenshot({ path: screenshotPath })
+  }
 
   const paintedPixels = await canvas.evaluate((node) => {
     const canvasNode = node as HTMLCanvasElement
