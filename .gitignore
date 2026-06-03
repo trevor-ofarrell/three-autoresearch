@@ -12,6 +12,7 @@ data/hyperframes/
 artifacts/
 finetune/datasets/
 finetune/datasets-hyperframes/
+finetune/datasets-combined/
 results.tsv
 run.log
 

@@ -233,6 +233,21 @@ def score_run(run_dir: Path, attempt_dir: Path | None = None) -> dict[str, Any]:
             add_check("animation", has_animation(source), BONUS_POINTS["animation"])
 
     penalties: dict[str, int] = {}
+    generation_returncode_path = attempt_dir / "generation_returncode.txt"
+    runner_success_check = "codex_success"
+    if generation_returncode_path.exists():
+        runner_success_check = "generation_success"
+        try:
+            generation_returncode = int(generation_returncode_path.read_text(encoding="utf-8").strip())
+        except ValueError:
+            generation_returncode = 1
+        if generation_returncode != 0:
+            penalties["generation_failure"] = CODEX_FAILURE_PENALTY
+            score -= CODEX_FAILURE_PENALTY
+            failed_checks.append("generation_success")
+        else:
+            passed_checks.append("generation_success")
+
     codex_returncode_path = attempt_dir / "codex_returncode.txt"
     if codex_returncode_path.exists():
         try:
@@ -280,12 +295,15 @@ def score_run(run_dir: Path, attempt_dir: Path | None = None) -> dict[str, Any]:
         "no_console_errors",
         "canvas_nonblank",
         "desktop_screenshot",
-        "codex_success",
+        runner_success_check,
         "solution_changed",
         "allowed_file_only",
         "solution_size",
     }
     required_checks = default_required | set(task.get("required_checks", []))
+    if runner_success_check == "generation_success":
+        required_checks.discard("codex_success")
+        required_checks.add("generation_success")
     threshold = int(task.get("score_threshold", sum(BASE_CHECK_POINTS.values())))
     passed_set = set(passed_checks)
     missing_required = sorted(required_checks - passed_set)

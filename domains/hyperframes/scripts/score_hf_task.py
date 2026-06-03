@@ -229,14 +229,26 @@ def score_run(run_dir: Path, attempt_dir: Path | None = None) -> dict[str, Any]:
         failed_checks.append("forbidden_file_edit")
         detail["forbidden_file_edit"] = -FORBIDDEN_EDIT_PENALTY
 
-    codex_rc_path = attempt_dir / "codex_returncode.txt"
-    codex_rc = codex_rc_path.read_text(encoding="utf-8").strip() if codex_rc_path.exists() else ""
-    if codex_rc == "0":
-        passed_checks.append("codex_success")
+    generation_rc_path = attempt_dir / "generation_returncode.txt"
+    runner_success_check = "codex_success"
+    if generation_rc_path.exists():
+        runner_success_check = "generation_success"
+        generation_rc = generation_rc_path.read_text(encoding="utf-8").strip()
+        if generation_rc == "0":
+            passed_checks.append("generation_success")
+        else:
+            score -= CODEX_FAILURE_PENALTY
+            failed_checks.append("generation_success")
+            detail["generation_success"] = -CODEX_FAILURE_PENALTY
     else:
-        score -= CODEX_FAILURE_PENALTY
-        failed_checks.append("codex_success")
-        detail["codex_success"] = -CODEX_FAILURE_PENALTY
+        codex_rc_path = attempt_dir / "codex_returncode.txt"
+        codex_rc = codex_rc_path.read_text(encoding="utf-8").strip() if codex_rc_path.exists() else ""
+        if codex_rc == "0":
+            passed_checks.append("codex_success")
+        else:
+            score -= CODEX_FAILURE_PENALTY
+            failed_checks.append("codex_success")
+            detail["codex_success"] = -CODEX_FAILURE_PENALTY
 
     if not solution_changed:
         score -= NO_OP_PENALTY
@@ -251,6 +263,9 @@ def score_run(run_dir: Path, attempt_dir: Path | None = None) -> dict[str, Any]:
         detail["solution_size"] = -EXCESSIVE_SOURCE_PENALTY
 
     required_checks = set(task.get("required_checks", task.get("checks", [])))
+    if runner_success_check == "generation_success":
+        required_checks.discard("codex_success")
+        required_checks.add("generation_success")
     missing_required = sorted(check for check in required_checks if check not in passed_checks)
     accepted = score >= int(task.get("score_threshold", 0)) and not missing_required
 
